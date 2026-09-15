@@ -8,7 +8,7 @@ Security model
 --------------
 When no keyring backend is available (common in containers, CI, and WSL),
 credentials are stored as **plain-text JSON** protected only by POSIX file
-permissions (mode 600).  The ``_obfuscate`` / ``_deobfuscate`` helpers in
+permissions (mode 600).  The ``obfuscate`` / ``deobfuscate`` helpers in
 this module are a lightweight XOR round-trip used elsewhere for non-secret
 data; they are **not** encryption and must not be used to protect secrets.
 """
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import warnings
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -171,13 +172,12 @@ def clear_provider_credentials(provider: str, *, use_keyring: bool | None = None
     if use_keyring:
         try:
             import keyring
-            from keyring.errors import PasswordDeleteError
 
             # Try common keys; silently ignore missing ones.
             for key in ("api_key", "token", "github_token"):
                 try:
                     keyring.delete_password(_KEYRING_SERVICE, _keyring_key(provider, key))
-                except (PasswordDeleteError, Exception):
+                except Exception:
                     pass
         except ImportError:
             pass
@@ -244,7 +244,7 @@ def _obfuscation_key() -> bytes:
     return hashlib.sha256(seed).digest()
 
 
-def _obfuscate(plaintext: str) -> str:
+def obfuscate(plaintext: str) -> str:
     """Lightly obfuscate *plaintext* (base64-encoded XOR).  **Not cryptographic.**"""
     import base64
 
@@ -254,16 +254,35 @@ def _obfuscate(plaintext: str) -> str:
     return base64.urlsafe_b64encode(xored).decode("ascii")
 
 
-def _deobfuscate(ciphertext: str) -> str:
-    """Reverse of :func:`_obfuscate`."""
+def deobfuscate(ciphertext: str) -> str:
+    """Reverse of :func:`obfuscate`."""
     import base64
 
     key = _obfuscation_key()
-    data = base64.urlsafe_b64decode(ciphertext.encode("ascii"))
+    # Normalize padding so tokens stored with trailing ``=`` stripped still decode.
+    stripped = ciphertext.rstrip("=")
+    padded = stripped + "=" * (-len(stripped) % 4)
+    data = base64.urlsafe_b64decode(padded.encode("ascii"))
     xored = bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
     return xored.decode("utf-8")
 
 
 # Backward compatibility — deprecated, will be removed in a future version.
-encrypt = _obfuscate
-decrypt = _deobfuscate
+def encrypt(plaintext: str) -> str:
+    """Deprecated alias for :func:`obfuscate`."""
+    warnings.warn(
+        "encrypt() is deprecated; use obfuscate() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return obfuscate(plaintext)
+
+
+def decrypt(ciphertext: str) -> str:
+    """Deprecated alias for :func:`deobfuscate`."""
+    warnings.warn(
+        "decrypt() is deprecated; use deobfuscate() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return deobfuscate(ciphertext)

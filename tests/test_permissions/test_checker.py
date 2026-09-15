@@ -161,6 +161,12 @@ class TestSensitivePathProtection:
             "/home/user/.kube/config",
             "/home/user/.openharness/credentials.json",
             "/home/user/.openharness/copilot_auth.json",
+            "/home/user/.git-credentials",
+            "/etc/passwd",
+            "/etc/sudoers.d/nopasswd",
+            "/etc/crontab",
+            "/home/user/.bashrc",
+            "/home/user/.config/autostart/malware.desktop",
         ):
             decision = checker.evaluate("read_file", is_read_only=True, file_path=path)
             assert decision.allowed is False, f"Expected {path} to be denied"
@@ -191,8 +197,8 @@ class TestSensitivePathProtection:
         checker = PermissionChecker(PermissionSettings(mode=PermissionMode.FULL_AUTO))
         for path in (
             "/home/user/project/src/main.py",
-            "/home/user/.bashrc",
             "/home/user/.config/nvim/init.lua",
+            "/home/user/Documents/notes.md",
             "/tmp/scratch.txt",
         ):
             decision = checker.evaluate("read_file", is_read_only=True, file_path=path)
@@ -223,6 +229,34 @@ class TestSensitivePathProtection:
             "*/.kube/config": "/home/u/.kube/config",
             "*/.openharness/credentials.json": "/home/u/.openharness/credentials.json",
             "*/.openharness/copilot_auth.json": "/home/u/.openharness/copilot_auth.json",
+            "*/.git-credentials": "/home/u/.git-credentials",
+            "*/.netrc": "/home/u/.netrc",
+            "/etc/passwd": "/etc/passwd",
+            "/etc/shadow": "/etc/shadow",
+            "/etc/group": "/etc/group",
+            "/etc/gshadow": "/etc/gshadow",
+            "/etc/sudoers": "/etc/sudoers",
+            "/etc/sudoers.d/*": "/etc/sudoers.d/nopasswd",
+            "/etc/ssh/*": "/etc/ssh/ssh_host_rsa_key",
+            "/etc/crontab": "/etc/crontab",
+            "/etc/cron.d/*": "/etc/cron.d/backup",
+            "/etc/cron.daily/*": "/etc/cron.daily/logrotate",
+            "/etc/cron.hourly/*": "/etc/cron.hourly/job",
+            "/etc/cron.weekly/*": "/etc/cron.weekly/job",
+            "/etc/cron.monthly/*": "/etc/cron.monthly/job",
+            "/var/spool/cron/*": "/var/spool/cron/root",
+            "/var/spool/cron/crontabs/*": "/var/spool/cron/crontabs/root",
+            "*/.bashrc": "/home/u/.bashrc",
+            "*/.bash_profile": "/home/u/.bash_profile",
+            "*/.bash_login": "/home/u/.bash_login",
+            "*/.bash_logout": "/home/u/.bash_logout",
+            "*/.profile": "/home/u/.profile",
+            "*/.zshrc": "/home/u/.zshrc",
+            "*/.zprofile": "/home/u/.zprofile",
+            "*/.zlogin": "/home/u/.zlogin",
+            "*/.zlogout": "/home/u/.zlogout",
+            "*/.config/fish/config.fish": "/home/u/.config/fish/config.fish",
+            "*/.config/autostart/*": "/home/u/.config/autostart/malware.desktop",
         }
         test_path = example_paths[pattern]
         checker = PermissionChecker(PermissionSettings(mode=PermissionMode.FULL_AUTO))
