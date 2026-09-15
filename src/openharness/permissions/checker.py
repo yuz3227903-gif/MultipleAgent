@@ -12,9 +12,11 @@ from openharness.permissions.modes import PermissionMode
 log = logging.getLogger(__name__)
 
 # Paths that are always denied regardless of permission mode or user config.
-# These protect high-value credential and key material from LLM-directed access
-# (including via prompt injection).  Patterns use fnmatch syntax and are matched
-# against the fully-resolved absolute path produced by the query engine.
+# These protect high-value credential and key material, system authentication
+# databases, and common persistence vectors (shell startup files, cron) from
+# LLM-directed access (including via prompt injection).  Patterns use fnmatch
+# syntax and are matched against the fully-resolved absolute path produced by
+# the query engine.
 SENSITIVE_PATH_PATTERNS: tuple[str, ...] = (
     # SSH keys and config
     "*/.ssh/*",
@@ -34,6 +36,38 @@ SENSITIVE_PATH_PATTERNS: tuple[str, ...] = (
     # OpenHarness own credential stores
     "*/.openharness/credentials.json",
     "*/.openharness/copilot_auth.json",
+    # Additional credential stores
+    "*/.git-credentials",
+    "*/.netrc",
+    # System account and authentication databases
+    "/etc/passwd",
+    "/etc/shadow",
+    "/etc/group",
+    "/etc/gshadow",
+    "/etc/sudoers",
+    "/etc/sudoers.d/*",
+    "/etc/ssh/*",
+    # Scheduled tasks (persistence vector)
+    "/etc/crontab",
+    "/etc/cron.d/*",
+    "/etc/cron.daily/*",
+    "/etc/cron.hourly/*",
+    "/etc/cron.weekly/*",
+    "/etc/cron.monthly/*",
+    "/var/spool/cron/*",
+    "/var/spool/cron/crontabs/*",
+    # Shell startup files (persistence / credential exfiltration vector)
+    "*/.bashrc",
+    "*/.bash_profile",
+    "*/.bash_login",
+    "*/.bash_logout",
+    "*/.profile",
+    "*/.zshrc",
+    "*/.zprofile",
+    "*/.zlogin",
+    "*/.zlogout",
+    "*/.config/fish/config.fish",
+    "*/.config/autostart/*",
 )
 
 
